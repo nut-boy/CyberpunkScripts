@@ -27,6 +27,7 @@ photo_mode.character.songbirdPoses: *AddPosesFem
 photo_mode.character.adamPoses: *AddPosesMasc
 photo_mode.character.altjohnnyPoses: *AddPosesMasc
 photo_mode.character.johnnyPoses: *AddPosesMasc
+photo_mode.character.johnnyNPCPoses: *AddPosesMasc
 photo_mode.character.goroPoses: *AddPosesMasc
 photo_mode.character.jackiePoses: *AddPosesMasc
 photo_mode.character.kerryPoses: *AddPosesMasc
