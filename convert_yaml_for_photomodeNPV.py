@@ -1,91 +1,120 @@
 import os
-import yaml
+import re
+
+female_pose_sets = {
+    "altPoses",
+    "bluemoonPoses",
+    "evelynPoses",
+    "hanakoPoses",
+    "judyPoses",
+    "lizzyPoses",
+    "meredithPoses",
+    "myersPoses",
+    "rogueoldPoses",
+    "panamPoses",
+    "purpleforcePoses",
+    "redmenacePoses",
+    "rogueyoungPoses",
+    "songbirdPoses"
+}
+
+male_pose_sets = {
+    "adamPoses",
+    "altjohnnyPoses",
+    "johnnyPoses",
+    "johnnyNPCPoses",
+    "goroPoses",
+    "jackiePoses",
+    "kerryPoses",
+    "riverPoses",
+    "viktorPoses",
+    "kurtPoses",
+    "reedPoses",
+}
+
+female_poses_yaml_anchor = None
+male_poses_yaml_anchor = None
+
+anchor_regex = r"&\w+"
+def add_anchor(line, fallback):
+
+    contains_anchor = lambda line: re.search(anchor_regex, line)
+
+    # Check for anchor
+    match = contains_anchor(line)
+    anchor = match.group() if match else fallback
+    if anchor == None:
+        anchor = fallback
+
+    lineWithoutAnchor = line.split("&")[0]
+
+    return f"{lineWithoutAnchor.strip()} {anchor}\n", anchor
+
+def update_file_content(lines):
+    new_lines = []
+    female_poses_yaml_anchor = None
+    male_poses_yaml_anchor = None
+
+    for line in lines:
+        if "femalePoses:" in line:
+            line, female_poses_yaml_anchor = add_anchor(line, "&AddPosesFem")
+        elif "malePoses:" in line:
+            line, male_poses_yaml_anchor = add_anchor(line, "&AddPosesMasc")
+
+        new_lines.append(line)
+
+    return new_lines, female_poses_yaml_anchor, male_poses_yaml_anchor
+
 
 def update_yaml_files(directory):
-    # Additional lines for female and male poses
-    additional_female_lines = """
-
-    
-photo_mode.character.altPoses: *AddPosesFem
-photo_mode.character.bluemoonPoses: *AddPosesFem
-photo_mode.character.evelynPoses: *AddPosesFem
-photo_mode.character.hanakoPoses: *AddPosesFem
-photo_mode.character.judyPoses: *AddPosesFem
-photo_mode.character.lizzyPoses: *AddPosesFem
-photo_mode.character.meredithPoses: *AddPosesFem
-photo_mode.character.myersPoses: *AddPosesFem
-photo_mode.character.rogueoldPoses: *AddPosesFem
-photo_mode.character.panamPoses: *AddPosesFem
-photo_mode.character.purpleforcePoses: *AddPosesFem
-photo_mode.character.redmenacePoses: *AddPosesFem
-photo_mode.character.rogueyoungPoses: *AddPosesFem
-photo_mode.character.songbirdPoses: *AddPosesFem
-"""
-    additional_male_lines = """
-    
-
-photo_mode.character.adamPoses: *AddPosesMasc
-photo_mode.character.altjohnnyPoses: *AddPosesMasc
-photo_mode.character.johnnyPoses: *AddPosesMasc
-photo_mode.character.johnnyNPCPoses: *AddPosesMasc
-photo_mode.character.goroPoses: *AddPosesMasc
-photo_mode.character.jackiePoses: *AddPosesMasc
-photo_mode.character.kerryPoses: *AddPosesMasc
-photo_mode.character.riverPoses: *AddPosesMasc
-photo_mode.character.viktorPoses: *AddPosesMasc
-photo_mode.character.kurtPoses: *AddPosesMasc
-photo_mode.character.reedPoses: *AddPosesMasc
-"""
 
     # Walk through the directory and its subdirectories
     for root, _, files in os.walk(directory):
         for file in files:
-            if file.lower().endswith('.yaml'):
-                file_path = os.path.join(root, file)
+            if not file.lower().endswith('.yaml'):
+                continue
 
-                # Use UTF-8 encoding for reading and writing files
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
+            file_path = os.path.join(root, file)
 
-                modified = False
-                contains_female = False
-                contains_male = False
-                new_lines = []
-                for line in lines:
-                    if "photo_mode.character.femalePoses:" in line:
-                        contains_female = True
-                        if "&AddPosesFem" not in line:
-                            line = line.strip() + " &AddPosesFem\n"
-                            modified = True
-                        new_lines.append(line)
-                    elif "photo_mode.character.malePoses:" in line:
-                        contains_male = True
-                        if "&AddPosesMasc" not in line:
-                            line = line.strip() + " &AddPosesMasc\n"
-                            modified = True
-                        new_lines.append(line)
-                    else:
-                        new_lines.append(line)
+            print(f"scanning {file}")
+            # Use UTF-8 encoding for reading and writing files
+            with open(file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
 
-                # Add additional lines if modified
-                if modified:
-                    if contains_female:
-                        new_lines.append(additional_female_lines)
-                    if contains_male:
-                        new_lines.append(additional_male_lines)
+            new_lines, female_poses_yaml_anchor, male_poses_yaml_anchor = update_file_content(lines)
 
-                    with open(file_path, 'w', encoding='utf-8') as f:
-                        f.writelines(new_lines)
+            new_lines.append("\n")
+            new_lines.append("\n")
+            wasAdded = False
 
-if __name__ == "__main__":
-    folder_path = input("Enter the folder path containing the .yaml files: ")
-    if not folder_path.strip():
-        print("Error: Folder path cannot be empty. Please provide a valid path.")
-    elif os.path.isdir(folder_path):
-        try:
-            update_yaml_files(folder_path)
-            print("YAML files updated successfully.")
-        except Exception as e:
-            print(f"An error occurred while updating YAML files: {e}")
-    else:
-        print("Invalid folder path. Please ensure the path exists and is a directory.")
+            if female_poses_yaml_anchor != None and any(female_poses_yaml_anchor in line for line in new_lines):
+                for posePack in female_pose_sets:
+                    poseString = f"photo_mode.character.{posePack}"
+                    if not (any(poseString in line for line in lines)):
+                        wasAdded = True
+                        new_lines.append(f"{poseString}: {female_poses_yaml_anchor.replace("&", "*")}\n")
+
+            if wasAdded:
+                new_lines.append("\n")
+
+            if male_poses_yaml_anchor != None and any(male_poses_yaml_anchor in line for line in new_lines):
+                for posePack in male_pose_sets:
+                    poseString = f"photo_mode.character.{posePack}"
+                    if not (any(poseString in line for line in lines)):
+                        new_lines.append(f"{poseString}: {male_poses_yaml_anchor.replace("&", "*")}\n")
+
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.writelines(new_lines)
+
+
+folder_path = input("Enter the folder path containing the .yaml files: ")
+if not folder_path.strip():
+    print("Error: Folder path cannot be empty. Please provide a valid path.")
+elif os.path.isdir(folder_path):
+    try:
+        update_yaml_files(folder_path)
+        print("YAML files updated successfully.")
+    except Exception as e:
+        print(f"An error occurred while updating YAML files: {e}")
+else:
+    print("Invalid folder path. Please ensure the path exists and is a directory.")
