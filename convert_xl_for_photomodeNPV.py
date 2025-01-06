@@ -11,32 +11,35 @@ def process_xl_files(directory):
     }
 
     for filename in os.listdir(directory):
-        if filename.endswith(".xl"):
-            file_path = os.path.join(directory, filename)
-            with open(file_path, "r") as file:
-                lines = file.readlines()
+        if not filename.endswith(".xl"):
+            continue
 
-            with open(file_path, "w") as file:
-                i = 0
-                while i < len(lines):
-                    line_written = False
-                    for old_entity, new_entity in entities.items():
-                        if old_entity in lines[i]:
-                            file.write(lines[i])  # Write the original line (entity line)
+        file_path = os.path.join(directory, filename)
+        with open(file_path, "r") as file:
+            lines = file.readlines()
 
-                            # If the next line is a 'set', write it and add the new entity line
-                            if i + 1 < len(lines) and "set" in lines[i + 1]:
-                                file.write(lines[i + 1])  # Write the 'set' line
-                                file.write(f"  - entity: {new_entity}\n")  # Write the new entity line
-                                file.write(lines[i + 1])  # Write the 'set' line again (only once for the new entity)
-                                i += 1  # Skip the next line since it's already processed
-                                line_written = True
-                                break
-                    if not line_written:
-                        file.write(lines[i])  # Write all other lines unchanged
-                    i += 1  # Move to the next line
+        if not (lambda line: any(old_entity in lines for old_entity in entities.keys())):
+            print(f"Nothing to update: {filename}")
+            continue
 
-            print(f"Processed file: {filename}")
+        new_lines = []
+        skip_line = False
+        for line in lines:
+            if "ep1" in line:
+                skip_line = True
+                continue
+            if skip_line:
+                skip_line = False
+                continue
+            if ".ent" in line:
+                for old_entity, new_entity in entities.items():
+                    line = line.replace(old_entity, new_entity)
+            new_lines.append(line)
+
+        with open(file_path, "w") as file:
+            file.writelines(new_lines)
+
+        print(f"Processed file: {filename}")
 
 # Main function to handle processing
 def main():
