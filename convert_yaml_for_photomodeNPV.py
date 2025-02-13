@@ -2,34 +2,34 @@ import os
 import re
 
 female_pose_sets = {
-    "altPoses",
-    "bluemoonPoses",
-    "evelynPoses",
-    "hanakoPoses",
-    "judyPoses",
-    "lizzyPoses",
-    "meredithPoses",
-    "myersPoses",
-    "rogueoldPoses",
-    "panamPoses",
-    "purpleforcePoses",
-    "redmenacePoses",
-    "rogueyoungPoses",
-    "songbirdPoses"
+    "photo_mode.character.altPoses",
+    "photo_mode.character.bluemoonPoses",
+    "photo_mode.character.evelynPoses",
+    "photo_mode.character.hanakoPoses",
+    "photo_mode.character.judyPoses",
+    "photo_mode.character.lizzyPoses",
+    "photo_mode.character.meredithPoses",
+    "photo_mode.character.myersPoses",
+    "photo_mode.character.rogueoldPoses",
+    "photo_mode.character.panamPoses",
+    "photo_mode.character.purpleforcePoses",
+    "photo_mode.character.redmenacePoses",
+    "photo_mode.character.rogueyoungPoses",
+    "photo_mode.character.songbirdPoses"
 }
 
 male_pose_sets = {
-    "adamPoses",
-    "altjohnnyPoses",
-    "johnnyPoses",
-    "johnnyNPCPoses",
-    "goroPoses",
-    "jackiePoses",
-    "kerryPoses",
-    "riverPoses",
-    "viktorPoses",
-    "kurtPoses",
-    "reedPoses",
+    "photo_mode.character.adamPoses",
+    "photo_mode.character.altjohnnyPoses",
+    "photo_mode.character.johnnyPoses",
+    "photo_mode.character.johnnyNPCPoses",
+    "photo_mode.character.goroPoses",
+    "photo_mode.character.jackiePoses",
+    "photo_mode.character.kerryPoses",
+    "photo_mode.character.riverPoses",
+    "photo_mode.character.viktorPoses",
+    "photo_mode.character.kurtPoses",
+    "photo_mode.character.reedPoses",
 }
 
 female_poses_yaml_anchor = None
@@ -83,25 +83,33 @@ def update_yaml_files(directory):
 
             new_lines, female_poses_yaml_anchor, male_poses_yaml_anchor = update_file_content(lines)
 
-            new_lines.append("\n")
-            new_lines.append("\n")
-            wasAdded = False
+
+            lines_with_pose_pack_assignments = [a for a in new_lines if any(posepack in a for posepack in male_pose_sets) or any(posepack in a for posepack in female_pose_sets)]
+
+            # remove any lines that contain a pose pack
+            new_lines = [a for a in new_lines if a not in lines_with_pose_pack_assignments]
+
+            if (len(new_lines) > 1 and new_lines[-2] != "\n"):
+                new_lines.append("\n")
+            if (len(new_lines) > 1 and new_lines[-2] != "\n"):
+                new_lines.append("\n")
 
             if female_poses_yaml_anchor != None and any(female_poses_yaml_anchor in line for line in new_lines):
-                for posePack in female_pose_sets:
-                    poseString = f"photo_mode.character.{posePack}"
-                    if not (any(poseString in line for line in lines)):
-                        wasAdded = True
-                        new_lines.append(f"{poseString}: {female_poses_yaml_anchor.replace("&", "*")}\n")
+                anchor = female_poses_yaml_anchor.replace("&", "*")
+                for poseString in female_pose_sets:
+                    if (any(f"{poseString}: ${anchor}" in line for line in lines)):
+                        continue
+                    new_lines.append(f"{poseString}: {anchor}\n")
 
-            if wasAdded:
+            if (len(new_lines) > 0 and new_lines[-1] != "\n"):
                 new_lines.append("\n")
 
             if male_poses_yaml_anchor != None and any(male_poses_yaml_anchor in line for line in new_lines):
-                for posePack in male_pose_sets:
-                    poseString = f"photo_mode.character.{posePack}"
-                    if not (any(poseString in line for line in lines)):
-                        new_lines.append(f"{poseString}: {male_poses_yaml_anchor.replace("&", "*")}\n")
+                anchor = male_poses_yaml_anchor.replace("&", "*")
+                for poseString in male_pose_sets:
+                    if (any(f"{poseString}: ${anchor}" in line for line in lines)):
+                        continue
+                    new_lines.append(f"{poseString}: {anchor}\n")
 
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.writelines(new_lines)
